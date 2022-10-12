@@ -8,6 +8,7 @@
 DRUSH_ALIAS="@${PROJECT}.${ENVIRONMENT}"
 # Project root is a known path on Acquia Cloud.
 PROJECT_ROOT="/var/www/html/${PROJECT}.${ENVIRONMENT}"
+DRUSH_PATH=${PROJECT_ROOT}/vendor/bin/drush
 FILE_CONFIG=${PROJECT_ROOT}/letsencrypt_drupal/config_${PROJECT}.${ENVIRONMENT}.sh
 DIRECTORY_DEHYDRATED_CONFIG=${PROJECT_ROOT}/letsencrypt_drupal/dehydrated
 FILE_DOMAINSTXT=${PROJECT_ROOT}/letsencrypt_drupal/domains_${PROJECT}.${ENVIRONMENT}.txt
@@ -97,10 +98,15 @@ drush_set_challenge()
   elif [[ "${DRUPAL_VERSION}" == "9" ]]; then
     echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} en -y --uri=${DOMAIN} letsencrypt_challenge"
     ${DRUSH_PATH} ${DRUSH_ALIAS} en -y --uri=${DOMAIN} letsencrypt_challenge
-    echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge \"${TOKEN_VALUE}\""
-    echo "$TOKEN_VALUE" | ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge -
-    echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge.${DOMAIN} \"${TOKEN_VALUE}\""
-    echo "$TOKEN_VALUE" | ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge.${DOMAIN} -
+    # Since all of our domains point to the same root, we need to set multiple as per
+    # https://www.drupal.org/project/letsencrypt_challenge/issues/2976683
+    PRIOR_VALUE=$(${DRUSH_PATH} ${DRUSH_ALIAS} sget --uri=${DOMAIN} letsencrypt_challenge.challenge --format=list)
+    echo "PRIOR_VALUE: ${PRIOR_VALUE}"
+    # Set the new value as the PRIOR_VALUE + TOKEN_VALUE (the lack of indent MATTERS here).
+    echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge \"${PRIOR_VALUE}
+${TOKEN_VALUE}\""
+    echo "$PRIOR_VALUE
+$TOKEN_VALUE" | ${DRUSH_PATH} ${DRUSH_ALIAS} sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge -
   fi
 }
 
