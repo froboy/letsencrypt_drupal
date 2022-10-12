@@ -18,7 +18,7 @@ FILE_BASECONFIG=${TMP_DIR}/baseconfig
 
 # Detect core version
 DRUPAL_VERSION="9"
-if grep -q -r -i --include Drupal.php "const version" ${PROJECT_ROOT}; then DRUPAL_VERSION="8"; fi
+if grep -q -r -i --include Drupal.php "const version = '8" ${PROJECT_ROOT}; then DRUPAL_VERSION="8"; fi
 if grep -q -r -i --include bootstrap.inc "define('VERSION', '" ${PROJECT_ROOT}; then DRUPAL_VERSION="7"; fi
 
 # Load all variables provided by the project.
