@@ -5,8 +5,8 @@ Wrapper script for https://github.com/dehydrated-io/dehydrated opinionated towar
 ## What it does
 
 * Installation (TL;DR version)
-  * `git clone` this repository to your server
   * Add configuration to your project.
+  * `git clone` this repository to your server
   * Add cron task.
 * Every time script gets executed (ideally once a week) it will
   * Self update check.
@@ -42,17 +42,17 @@ These steps are for `prod` environment of PROJECT on Acquia Cloud. Can be easily
 * `ssh PROJECT.prod@srv-XXXX.devcloud.hosting.acquia.com`
   * (You can get the address on "Servers" tab in Acquia UI)
   * `cd ~`
-  * `git clone https://github.com/morpht/letsencrypt_drupal.git`
-* In project root
+  * `git clone https://github.com/froboy/letsencrypt_drupal.git`
+* In your local project root
   * Add letsencrypt_drupal configuration.
-    * `git clone https://github.com/morpht/letsencrypt_drupal.git tmp_lea` # Temporarily get the repository to get example configuration files.
+    * `git clone https://github.com/froboy/letsencrypt_drupal.git tmp_lea` # Temporarily get the repository to get example configuration files.
     * `cp -r tmp_lea/example_project_config/* .` # Copy the configuration.
     * `rm -rf tmp_lea/`
     * Edit `letsencrypt_drupal/dehydrated/config.sh` 
       * You need to set your e-mail. The script provides the rest of defaults needed to get a certificate.
       * You can alter other values as described here: https://github.com/dehydrated-io/dehydrated/blob/master/docs/examples/config
     * Edit `letsencrypt_drupal/domains_site.env.txt`
-      * Rename it based on site alias you are going to be using.
+      * Rename it based on site alias you are going to be using. `site` should be replaced with the Acquia alias of the site, which can be found in the Acquia UI as the prefix to the "Git URL", like `mysite@svn-1234.devcloud.hosting.acquia.com:mysite.git`
       * For multiple environments create multiple copies of this file.
       * One line, space separated list of domains.
       * First domain will be set as Common name
@@ -62,7 +62,7 @@ These steps are for `prod` environment of PROJECT on Acquia Cloud. Can be easily
       * Get your webhook url here: https://my.slack.com/services/new/incoming-webhook/
       * Set the webhook url and target channel variables.
       * Certificate deployment is optional.
-        * Fallback is just posting instructions in Salck/Log file.
+        * Fallback is just posting instructions in Slack/Log file.
         * Set the `$CERT_DEPLOY_ENVIRONMENT_UUID` (Environment uuid needs to be aligned with the `env` of the file name.)
     * Multiple environments mean multiple config files. For example `test` and `prod`:
       * `config_site.test.sh` 
@@ -72,12 +72,32 @@ These steps are for `prod` environment of PROJECT on Acquia Cloud. Can be easily
     * `secrets.settings.php`
       * Should *not* be committed in project repository.
       * Should be placed on Acquia server here: `/mnt/files/PROJECT.prod/secrets.settings.php`
+    * commit these files to the repo, like so:
+        ```
+        project_root
+        - ...
+        - docroot
+        - ...
+        - letsencrypt_drupal
+          - dehydrated
+            - config.sh
+          - config_mysite.prod.sh
+          - domains_mysite.prod.txt
+         ```
   * Add https://www.drupal.org/project/letsencrypt_challenge module.
     * `composer require drupal/letsencrypt_challenge`
+    * Until the linked issues are closed, add these patches in `composer.json`:
+    ```
+    "drupal/letsencrypt_challenge": {
+      "https://dgo.re/3236779 Challenge string should be textarea": "https://git.drupalcode.org/project/letsencrypt_challenge/-/merge_requests/1.diff",
+      "https://dgo.re/2976683 Allow multiple challenges": "https://www.drupal.org/files/issues/2021-09-22/letsencrypt_challenge-allow_multiple_challenges-2976683-11.patch"
+    }
+    ```
+    * enable the module and follow your standard config management processes to ensure it's enabled on production.
   * Commit and deploy to production.
-* In Acquia UI add the Scheduled task
+* In the Acquia UI add the Scheduled task
   * Running the task often is not a problem.
-  * Ideal is once a week, ideally on Monday morning.
+  * Ideal is once a week, ideally on Monday morning (be sure to convert your actual morning time to UTC).
     * Nobody wants to fix certificates on Friday evening :)
     * You should have 60 days of time (with default settings) even if something fails or new manual certificate upload is needed.
   * New job:
