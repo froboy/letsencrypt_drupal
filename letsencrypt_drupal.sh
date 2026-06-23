@@ -107,6 +107,9 @@ main() {
   fi
   # Output for logging.
   echo "${DEHYDRATED_RESULT}"
+
+  # Run cleanup of expired/inactive LE certs installed by this script.
+  bash ${CURRENT_DIR}/acquia_cloud_cert_deployment/cert_cleanup.sh
 }
 
 self_update
