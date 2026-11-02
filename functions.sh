@@ -126,6 +126,6 @@ drush_clean_challenge()
     drush9 ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge
   elif [[ "${DRUPAL_VERSION}" == "9" ]]; then
     echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge"
-    ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge
+    ${DRUSH_PATH} ${DRUSH_ALIAS} pml --status=Enabled --uri=${DOMAIN} | grep -qw letsencrypt_challenge && ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge || true
   fi
 }
