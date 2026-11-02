@@ -77,10 +77,10 @@ deploy_cert() {
         if [ $? -eq 0 ]
         then
           # Send successful result to slack.
-          slackpost "${PROJECT_ROOT}" "good" "SSL bot ${DRUSH_ALIAS}" "SSL certificate deployment successful. \`\`\`${RESULT}\`\`\`"
+          slackpost "${PROJECT_ROOT}" "good" "SSL bot ${DRUSH_ALIAS}" "SSL certificate deployment successful. \`\`\`$(tail_for_slack "${RESULT}")\`\`\`"
         else
           # Send failure notification to slack.
-          slackpost "${PROJECT_ROOT}" "danger" "SSL bot ${DRUSH_ALIAS}" "*SSL certificate deployment failure.* Manual review/fix required! \`\`\`${RESULT}\`\`\`\n\nNew certificate for ${DOMAIN} *was generated and needs to be uploaded to Acquia manually*.\n\nSSH to \`drush ${DRUSH_ALIAS} ssh\` to read files.\nLogin to Acquia and open target environment. Open SSL tab on the left side. Click Install SSL certificate.\n\nText fields:\nSSL certificate: \`cat ${FULLCHAINFILE}\`\nSSL private key: \`cat ${KEYFILE}\`\nCA intermediate certificates: \`cat ${CHAINFILE}\`"
+          slackpost "${PROJECT_ROOT}" "danger" "SSL bot ${DRUSH_ALIAS}" "*SSL certificate deployment failure.* Manual review/fix required! \`\`\`$(tail_for_slack "${RESULT}")\`\`\`\n\nNew certificate for ${DOMAIN} *was generated and needs to be uploaded to Acquia manually*.\n\nSSH to \`drush ${DRUSH_ALIAS} ssh\` to read files.\nLogin to Acquia and open target environment. Open SSL tab on the left side. Click Install SSL certificate.\n\nText fields:\nSSL certificate: \`cat ${FULLCHAINFILE}\`\nSSL private key: \`cat ${KEYFILE}\`\nCA intermediate certificates: \`cat ${CHAINFILE}\`"
         fi
         # Output for logging.
         echo "${RESULT}"
