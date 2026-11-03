@@ -39,6 +39,44 @@ acquire_lock_or_exit()
 }
 
 #---------------------------------------------------------------------
+# Maximum number of characters of command output to include in a Slack message.
+# Projects can override this in their config file.
+SLACK_MAX_OUTPUT=${SLACK_MAX_OUTPUT:-3000}
+
+#---------------------------------------------------------------------
+# Print the last SLACK_MAX_OUTPUT characters of the given text. The end of the
+# output is where errors are, and a single curl argument cannot exceed ~128KB.
+tail_for_slack()
+{
+  local output="${1}"
+
+  if [ "${#output}" -gt "${SLACK_MAX_OUTPUT}" ]; then
+    printf '...(truncated, showing the last %s of %s characters)\n%s' "${SLACK_MAX_OUTPUT}" "${#output}" "${output: -${SLACK_MAX_OUTPUT}}"
+  else
+    printf '%s' "${output}"
+  fi
+}
+
+#---------------------------------------------------------------------
+# Escape text for use inside a JSON string.
+slack_json_escape()
+{
+  local text="${1}"
+
+  # Callers write a literal \n for newlines. Convert them to real newlines
+  # first so the backslash escaping below does not double them up.
+  text="${text//\\n/$'\n'}"
+  # Drop control characters (except tab, newline and carriage return).
+  text=$(printf '%s' "${text}" | tr -d '\000-\010\013\014\016-\037')
+  text="${text//\\/\\\\}"
+  text="${text//\"/\\\"}"
+  text="${text//$'\r'/}"
+  text="${text//$'\t'/\\t}"
+  text="${text//$'\n'/\\n}"
+  printf '%s' "${text}"
+}
+
+#---------------------------------------------------------------------
 slackpost()
 {
   # Can either be one of 'good', 'warning', 'danger', or any hex color code
@@ -47,12 +85,16 @@ slackpost()
   TEXT="${4}"
 
   if [[ "$SLACK_WEBHOOK_URL" =~ ^https:\/\/hooks.slack.com* ]]; then
-    # based on https://gist.github.com/dopiaza/6449505
-    escapedText=$(echo $TEXT | sed 's/"/\"/g' | sed "s/'/\'/g")
-    json="{\"channel\": \"$SLACK_CHANNEL\", \"username\":\"$USERNAME\", \"icon_emoji\":\"ghost\", \"attachments\":[{\"color\":\"$COLOR\" , \"text\": \"$escapedText\"}]}"
-    curl -s -d "payload=$json" "$SLACK_WEBHOOK_URL" || logline "Failed to send message to slack: ${USERNAME}: ${TEXT}"
+    escapedText=$(slack_json_escape "${TEXT}")
+    escapedUsername=$(slack_json_escape "${USERNAME}")
+    # Send the payload on stdin as JSON. Passing it as an argument fails with
+    # "Argument list too long" for large messages, and form-encoding it mangles
+    # any "&" or "+" in the text.
+    printf '{"channel": "%s", "username": "%s", "icon_emoji": "ghost", "attachments": [{"color": "%s", "text": "%s"}]}' "$SLACK_CHANNEL" "$escapedUsername" "$COLOR" "$escapedText" \
+      | curl -s -f -X POST -H 'Content-type: application/json' --data-binary @- "$SLACK_WEBHOOK_URL" \
+      || logline "Failed to send message to slack: ${USERNAME}: ${TEXT:0:500}"
   else
-    logline "No Slack: ${USERNAME}: ${TEXT}"
+    logline "No Slack: ${USERNAME}: ${TEXT:0:500}"
   fi
 }
 
@@ -126,6 +168,6 @@ drush_clean_challenge()
     drush9 ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge
   elif [[ "${DRUPAL_VERSION}" == "9" ]]; then
     echo "EXECUTING: ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge"
-    ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge
+    ${DRUSH_PATH} ${DRUSH_ALIAS} pml --status=Enabled --uri=${DOMAIN} | grep -qw letsencrypt_challenge && ${DRUSH_PATH} ${DRUSH_ALIAS} pmu -y --uri=${DOMAIN} letsencrypt_challenge || true
   fi
 }

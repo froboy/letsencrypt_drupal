@@ -100,10 +100,10 @@ main() {
   if [ $? -eq 0 ]
   then
     # Send result to slack.
-    slackpost "${PROJECT_ROOT}" "good" "SSL bot ${DRUSH_ALIAS}" "SSL Dehydrated script success. \`\`\`${DEHYDRATED_RESULT}\`\`\`"
+    slackpost "${PROJECT_ROOT}" "good" "SSL bot ${DRUSH_ALIAS}" "SSL Dehydrated script success. \`\`\`$(tail_for_slack "${DEHYDRATED_RESULT}")\`\`\`"
   else
     # Send result to slack.
-    slackpost "${PROJECT_ROOT}" "danger" "SSL bot ${DRUSH_ALIAS}" "*SSL Dehydrated script failure.* Manual review/fix required!  \`\`\`${DEHYDRATED_RESULT}\`\`\`"
+    slackpost "${PROJECT_ROOT}" "danger" "SSL bot ${DRUSH_ALIAS}" "*SSL Dehydrated script failure.* Manual review/fix required!  \`\`\`$(tail_for_slack "${DEHYDRATED_RESULT}")\`\`\`"
   fi
   # Output for logging.
   echo "${DEHYDRATED_RESULT}"
